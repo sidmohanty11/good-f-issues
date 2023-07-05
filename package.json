@@ -23,16 +23,26 @@
   "devDependencies": {
     "@builder.io/qwik": "^1.2.5",
     "@builder.io/qwik-city": "^1.2.5",
+    "@types/dompurify": "^3.0.2",
     "@types/eslint": "8.40.2",
+    "@types/marked": "^5.0.0",
     "@types/node": "^20.3.3",
     "@typescript-eslint/eslint-plugin": "5.60.1",
     "@typescript-eslint/parser": "5.60.1",
+    "autoprefixer": "^10.4.14",
     "eslint": "8.44.0",
     "eslint-plugin-qwik": "^1.2.5",
+    "postcss": "^8.4.23",
     "prettier": "2.8.8",
+    "tailwindcss": "^3.3.1",
     "typescript": "5.1.6",
     "undici": "5.22.1",
     "vite": "4.3.9",
     "vite-tsconfig-paths": "4.2.0"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.26.0",
+    "dompurify": "^3.0.4",
+    "marked": "^5.1.0"
   }
 }
