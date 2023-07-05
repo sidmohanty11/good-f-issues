@@ -36,7 +36,7 @@ export default component$(() => {
 
   useVisibleTask$(async () => {
     try {
-      let userData = localStorage.getItem("gfi_user");
+      const userData = localStorage.getItem("gfi_user");
 
       if (userData && userData !== "undefined" && userData !== "null") {
         user.value = JSON.parse(userData);
