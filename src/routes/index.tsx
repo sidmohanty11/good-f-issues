@@ -1,8 +1,8 @@
 import { component$, useSignal, $, useVisibleTask$ } from "@builder.io/qwik";
 import type { DocumentHead } from "@builder.io/qwik-city";
 import { supabase } from "~/supabase";
-import {marked} from 'marked'
-import DOMPurify from 'dompurify'
+import { marked } from "marked";
+import DOMPurify from "dompurify";
 
 const issuesPerPage = 100;
 
@@ -28,7 +28,6 @@ export default component$(() => {
         }
       );
       const issuesPage = await fetchIssuesPage.json();
-      console.log(issuesPage.items)
       issues.value = [...issues.value, ...issuesPage.items];
     } catch (error) {
       console.log(error);
@@ -103,30 +102,49 @@ export default component$(() => {
       </div>
       <div>
         {issues.value.map((issue: any) => (
-          <div key={issue.id} class="flex flex-col items-center mt-4 p-4 border bg-zinc-800">
-            <a class="text-blue-500 text-2xl" href={issue.html_url} target="_blank">
+          <div
+            key={issue.id}
+            class="flex flex-col items-center mt-4 p-4 border bg-zinc-800"
+          >
+            <a
+              class="text-blue-500 text-2xl"
+              href={issue.html_url}
+              target="_blank"
+            >
               {issue.title}
             </a>
             <div class="flex space-x-2">
-            {issue.labels && issue.labels.length > 0 && issue.labels.map((label: any) => (
-              <span class="bg-gray-800 text-gray-200 text-xs px-2 py-1 rounded-sm mr-2">{label.name}</span>
-            ))}
+              {issue.labels &&
+                issue.labels.length > 0 &&
+                issue.labels.map((label: any) => (
+                  <span class="bg-gray-800 text-gray-200 text-xs px-2 py-1 rounded-sm mr-2">
+                    {label.name}
+                  </span>
+                ))}
             </div>
-            <p class="text-sm text-gray-500">{new Date(issue.created_at).toLocaleString()}</p>
-            <p class="text-sm text-gray-200 p-4 bg-zinc-600" dangerouslySetInnerHTML={DOMPurify.sanitize(marked.parse(issue.body))}></p>
+            <p class="text-sm text-gray-500">
+              {new Date(issue.created_at).toLocaleString()}
+            </p>
+            <p
+              class="text-sm text-gray-200 p-4 bg-zinc-600"
+              dangerouslySetInnerHTML={DOMPurify.sanitize(
+                marked.parse(issue.body)
+              )}
+            ></p>
           </div>
         ))}
-        {issues.value.length > 0 && issues.value.length % issuesPerPage === 0 && (
-          <button
-            class="bg-gray-800 p-2 border border-gray-300 my-4"
-            onClick$={() => {
-              page.value = page.value + 1;
-              fetchIssues();
-            }}
-          >
-            Load more
-          </button>
-        )}
+        {issues.value.length > 0 &&
+          issues.value.length % issuesPerPage === 0 && (
+            <button
+              class="bg-gray-800 p-2 border border-gray-300 my-4"
+              onClick$={() => {
+                page.value = page.value + 1;
+                fetchIssues();
+              }}
+            >
+              Load more
+            </button>
+          )}
       </div>
     </div>
   );
