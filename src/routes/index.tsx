@@ -7,7 +7,7 @@ import DOMPurify from "dompurify";
 const issuesPerPage = 100;
 
 export default component$(() => {
-  const user = useSignal();
+  const user = useSignal<any>();
   const orgName = useSignal<string>("");
   const issues = useSignal<any[]>([]);
   const page = useSignal(1);
