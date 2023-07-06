@@ -2,6 +2,7 @@ import { $, component$, useStyles$ } from "@builder.io/qwik";
 import styles from './styles.css?inline';
 
 import { supabase } from "~/supabase";
+import { DocumentHead } from "@builder.io/qwik-city";
 
 const Login = component$(() => {
   useStyles$(styles);
@@ -34,3 +35,13 @@ const Login = component$(() => {
 });
 
 export default Login;
+
+export const head: DocumentHead = {
+  title: "good-f-issues | Login",
+  meta: [
+    {
+      name: "description",
+      content: "An app to find good first issues across your orgs",
+    },
+  ],
+};

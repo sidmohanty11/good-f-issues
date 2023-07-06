@@ -3,14 +3,16 @@ import type { DocumentHead } from "@builder.io/qwik-city";
 import { supabase } from "~/supabase";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
+import { formatTimeToNow } from "~/utils";
 
-const issuesPerPage = 100;
+const issuesPerPage = 20;
 
 export default component$(() => {
   const user = useSignal<any>();
   const orgName = useSignal<string>("");
   const issues = useSignal<any[]>([]);
   const page = useSignal(1);
+  const pRef = useSignal<HTMLElement>();
 
   const fetchIssues = $(async () => {
     const { data } = await supabase.auth.getSession();
@@ -28,6 +30,9 @@ export default component$(() => {
         }
       );
       const issuesPage = await fetchIssuesPage.json();
+      // html_url -> github.com/<org>/<repo>/issues/<issue_id> we need org, repo and issue_id
+      // need to sort them by created_at
+      // user.login, user.html_url
       issues.value = [...issues.value, ...issuesPage.items];
     } catch (error) {
       console.log(error);
@@ -47,6 +52,7 @@ export default component$(() => {
         }
         if (data) {
           user.value = data.user?.user_metadata;
+          // cache user data for faster load and less API calls
           localStorage.setItem(
             "gfi_user",
             JSON.stringify(data.user?.user_metadata)
@@ -87,7 +93,7 @@ export default component$(() => {
         <input
           class="w-full p-2 rounded bg-gray-800 border border-gray-200"
           type="text"
-          placeholder="Search"
+          placeholder="Enter an organization name to find their good first issues"
           value={orgName.value}
           onChange$={(event) => {
             orgName.value = event.target.value;
@@ -100,38 +106,73 @@ export default component$(() => {
           Find
         </button>
       </div>
-      <div>
+      <div class="my-4">
         {issues.value.map((issue: any) => (
-          <div
-            key={issue.id}
-            class="flex flex-col items-center mt-4 p-4 border bg-zinc-800"
-          >
-            <a
-              class="text-blue-500 text-2xl"
-              href={issue.html_url}
-              target="_blank"
-            >
-              {issue.title}
-            </a>
-            <div class="flex space-x-2">
+          <article class="p-4 bg-white rounded-lg border border-gray-200 shadow-md dark:bg-gray-800 dark:border-gray-700">
+            <div class="flex items-center space-x-2">
+              <h2 class="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+                <a
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  href={issue.html_url}
+                >
+                  {issue.title}
+                </a>
+              </h2>
               {issue.labels &&
                 issue.labels.length > 0 &&
-                issue.labels.map((label: any) => (
-                  <span class="bg-gray-800 text-gray-200 text-xs px-2 py-1 rounded-sm mr-2">
+                issue.labels.splice(0, 3).map((label: any) => (
+                  <span class="flex items-center border p-1 truncate" style={{
+                    fontSize: "0.5rem",
+                  }}>
+                    <svg
+                      class="mr-1 w-2 h-2"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z"></path>
+                    </svg>
                     {label.name}
                   </span>
                 ))}
             </div>
-            <p class="text-sm text-gray-500">
-              {new Date(issue.created_at).toLocaleString()}
-            </p>
             <p
-              class="text-sm text-gray-200 p-4 bg-zinc-600"
+              class="relative text-sm text-gray-500 font-light max-h-40 max-w-md overflow-clip"
+              ref={pRef}
               dangerouslySetInnerHTML={DOMPurify.sanitize(
                 marked.parse(issue.body)
-              )}
-            ></p>
-          </div>
+              )}>
+            </p>
+            <div class="flex justify-between items-center">
+              <div class="flex items-center space-x-4">
+                <span class="text-xs dark:text-white">
+                  #{issue.number} opened by {issue.user.login}{" "}
+                  {formatTimeToNow(issue.created_at)}
+                </span>
+              </div>
+              <a
+                href={issue.html_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex items-center font-medium text-primary-600 dark:text-primary-500 hover:underline"
+              >
+                Go to Issue
+                <svg
+                  class="ml-2 w-4 h-4"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"
+                    clip-rule="evenodd"
+                  ></path>
+                </svg>
+              </a>
+            </div>
+          </article>
         ))}
         {issues.value.length > 0 &&
           issues.value.length % issuesPerPage === 0 && (
