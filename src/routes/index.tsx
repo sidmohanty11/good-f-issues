@@ -15,15 +15,12 @@ export default component$(() => {
   const isLoading = useSignal(false);
   const errorMessage = useSignal("");
 
-  const fetchIssues = $(async () => {
+  const fetchIssues = $(async (org: string) => {
     isLoading.value = true;
     errorMessage.value = "";
     issues.value = [];
     page.value = 1;
-    
     const { data, error } = await supabase.auth.getSession();
-
-    let org = orgName.value;
 
     if (!org) {
       errorMessage.value = "Please enter an organization name.";
@@ -135,13 +132,14 @@ export default component$(() => {
           }}
           onKeyDown$={(event) => {
             if (event.key === "Enter") {
-              fetchIssues();
+              const input = event.target as HTMLInputElement;
+              fetchIssues(input.value);
             }
           }}
         />
         <button
           class="bg-gray-800 p-2 border border-gray-300"
-          onClick$={fetchIssues}
+          onClick$={() => fetchIssues(orgName.value)}
         >
           Find
         </button>
@@ -153,8 +151,8 @@ export default component$(() => {
       </div>
       <div class="flex items-center justify-center mt-4">
         <button
-          class={`bg-gray-800 p-2 border border-gray-300 flex items-center ${
-            !isTileView.value ? "bg-blue-800" : ""
+          class={`p-2 border border-gray-300 flex items-center ${
+            isTileView.value === false ? "bg-blue-800" : ""
           }`}
           onClick$={() => {
             isTileView.value = false;
@@ -177,8 +175,8 @@ export default component$(() => {
           List view
         </button>
         <button
-          class={`bg-gray-800 p-2 border border-gray-300 flex items-center ${
-            isTileView.value ? "bg-blue-800" : ""
+          class={`p-2 border border-gray-300 flex items-center ${
+            isTileView.value === true ? "bg-blue-800" : ""
           }`}
           onClick$={() => {
             isTileView.value = true;
@@ -225,7 +223,7 @@ export default component$(() => {
               class="bg-gray-800 p-2 border border-gray-300 my-4"
               onClick$={() => {
                 page.value = page.value + 1;
-                fetchIssues();
+                fetchIssues(orgName.value);
               }}
             >
               Load more

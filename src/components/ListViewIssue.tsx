@@ -1,6 +1,4 @@
 import { component$ } from "@builder.io/qwik";
-import { marked } from "marked";
-import DOMPurify from "dompurify";
 import { formatTimeToNow } from "~/utils";
 
 type ListViewProps = {
