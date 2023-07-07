@@ -19,6 +19,8 @@ export default component$(() => {
     isLoading.value = true;
     errorMessage.value = "";
     issues.value = [];
+    page.value = 1;
+    
     const { data, error } = await supabase.auth.getSession();
 
     let org = orgName.value;
