@@ -10,16 +10,19 @@ export default component$(() => {
   const user = useSignal<any>();
   const orgName = useSignal<string>("");
   const issues = useSignal<any[]>([]);
-  const page = useSignal(1);
+  const pageNumber = useSignal(1);
   const isTileView = useSignal(true);
   const isLoading = useSignal(false);
   const errorMessage = useSignal("");
 
-  const fetchIssues = $(async (org: string) => {
+  const fetchIssues = $(async (org: string, page: number, reset: boolean) => {
     isLoading.value = true;
     errorMessage.value = "";
-    issues.value = [];
-    page.value = 1;
+
+    if (reset) {
+      issues.value = [];
+    }
+
     const { data, error } = await supabase.auth.getSession();
 
     if (!org) {
@@ -50,7 +53,7 @@ export default component$(() => {
 
     try {
       const fetchIssuesPage = await fetch(
-        `https://api.github.com/search/issues?q=org:${org}+label:"good first issue"+state:open&per_page=${issuesPerPage}&page=${page.value}`,
+        `https://api.github.com/search/issues?q=org:${org}+label:"good first issue"+state:open&per_page=${issuesPerPage}&page=${page}`,
         {
           headers: {
             "X-GitHub-Api-Version": "2022-11-28",
@@ -66,7 +69,6 @@ export default component$(() => {
       errorMessage.value = "Error fetching issues. Please try again.";
     } finally {
       isLoading.value = false;
-      orgName.value = "";
     }
   });
 
@@ -133,13 +135,13 @@ export default component$(() => {
           onKeyDown$={(event) => {
             if (event.key === "Enter") {
               const input = event.target as HTMLInputElement;
-              fetchIssues(input.value);
+              fetchIssues(input.value, 1, true);
             }
           }}
         />
         <button
           class="bg-gray-800 p-2 border border-gray-300"
-          onClick$={() => fetchIssues(orgName.value)}
+          onClick$={() => fetchIssues(orgName.value, 1, true)}
         >
           Find
         </button>
@@ -222,8 +224,8 @@ export default component$(() => {
             <button
               class="bg-gray-800 p-2 border border-gray-300 my-4"
               onClick$={() => {
-                page.value = page.value + 1;
-                fetchIssues(orgName.value);
+                pageNumber.value = pageNumber.value + 1;
+                fetchIssues(orgName.value, pageNumber.value, false);
               }}
             >
               Load more
