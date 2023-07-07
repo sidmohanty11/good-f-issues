@@ -1,9 +1,8 @@
 import { component$, useSignal, $, useVisibleTask$ } from "@builder.io/qwik";
 import type { DocumentHead } from "@builder.io/qwik-city";
+import TileIssue from "~/components/TileViewIssue";
+import FullWidthIssue from "~/components/ListViewIssue";
 import { supabase } from "~/supabase";
-import { marked } from "marked";
-import DOMPurify from "dompurify";
-import { formatTimeToNow } from "~/utils";
 
 const issuesPerPage = 20;
 
@@ -12,10 +11,17 @@ export default component$(() => {
   const orgName = useSignal<string>("");
   const issues = useSignal<any[]>([]);
   const page = useSignal(1);
-  const pRef = useSignal<HTMLElement>();
+  const isTileView = useSignal(true);
+  const isLoading = useSignal(false);
 
   const fetchIssues = $(async () => {
-    const { data } = await supabase.auth.getSession();
+    isLoading.value = true;
+    const { data, error } = await supabase.auth.getSession();
+
+    if (error || !data.session?.provider_token) {
+      window.location.href = "/login?error=session_expired";
+    }
+
     const auth_token = data.session?.provider_token;
 
     try {
@@ -30,12 +36,11 @@ export default component$(() => {
         }
       );
       const issuesPage = await fetchIssuesPage.json();
-      // html_url -> github.com/<org>/<repo>/issues/<issue_id> we need org, repo and issue_id
-      // need to sort them by created_at
-      // user.login, user.html_url
       issues.value = [...issues.value, ...issuesPage.items];
     } catch (error) {
       console.log(error);
+    } finally {
+      isLoading.value = false;
     }
   });
 
@@ -76,7 +81,7 @@ export default component$(() => {
           <h1 class="text-3xl mt-4">Hello, @{user.value.user_name}</h1>
         </div>
       ) : (
-        <div class="flex flex-col justify-center items-center">
+        <div class="flex flex-col justify-center items-center animate-pulse">
           <svg
             class="w-20 h-20 rounded-sm text-gray-200 dark:text-gray-600"
             aria-hidden="true"
@@ -89,7 +94,7 @@ export default component$(() => {
           <div class="h-2.5 mt-4 bg-gray-200 rounded-full dark:bg-gray-700 w-48 mb-4"></div>
         </div>
       )}
-      <div class="flex items-center mt-4">
+      <div class="flex items-center justify-center mt-4">
         <input
           class="w-full p-2 rounded bg-gray-800 border border-gray-200"
           type="text"
@@ -97,6 +102,11 @@ export default component$(() => {
           value={orgName.value}
           onChange$={(event) => {
             orgName.value = event.target.value;
+          }}
+          onKeyDown$={(event) => {
+            if (event.key === "Enter") {
+              fetchIssues();
+            }
           }}
         />
         <button
@@ -106,73 +116,73 @@ export default component$(() => {
           Find
         </button>
       </div>
-      <div class="my-4">
+      <div class="flex items-center justify-center mt-4">
+        <button
+          class={`bg-gray-800 p-2 border border-gray-300 flex items-center ${
+            !isTileView.value ? "bg-blue-900" : ""
+          }`}
+          onClick$={() => {
+            isTileView.value = false;
+          }}
+        >
+          <svg
+            fill="#fff"
+            width="16px"
+            height="16px"
+            viewBox="0 0 52 52"
+            data-name="Layer 1"
+            id="Layer_1"
+            xmlns="http://www.w3.org/2000/svg"
+            class="mr-2"
+          >
+            <path d="M50,15.52H2a2,2,0,0,1-2-2V2A2,2,0,0,1,2,0H50a2,2,0,0,1,2,2V13.52A2,2,0,0,1,50,15.52Zm-46-4H48V4H4Z" />
+            <path d="M50,33.76H2a2,2,0,0,1-2-2V20.24a2,2,0,0,1,2-2H50a2,2,0,0,1,2,2V31.76A2,2,0,0,1,50,33.76Zm-46-4H48V22.24H4Z" />
+            <path d="M50,52H2a2,2,0,0,1-2-2V38.48a2,2,0,0,1,2-2H50a2,2,0,0,1,2,2V50A2,2,0,0,1,50,52ZM4,48H48V40.48H4Z" />
+          </svg>
+          List view
+        </button>
+        <button
+          class={`bg-gray-800 p-2 border border-gray-300 flex items-center ${
+            isTileView.value ? "bg-blue-900" : ""
+          }`}
+          onClick$={() => {
+            isTileView.value = true;
+          }}
+        >
+          <svg
+            fill="#fff"
+            width="16px"
+            height="16px"
+            viewBox="0 0 14 14"
+            role="img"
+            focusable="false"
+            aria-hidden="true"
+            xmlns="http://www.w3.org/2000/svg"
+            class="mr-2"
+          >
+            <path
+              style="fill-rule:evenodd"
+              d="M 1,1 6.4,1 6.4,6.4 1,6.4 1,1 Z m 1.2,1.2 3,0 0,3 -3,0 0,-3 z M 1,7.6 6.4,7.6 6.4,13 1,13 1,7.6 Z m 1.2,1.2 3,0 0,3 -3,0 0,-3 z M 7.6,1 13,1 13,6.4 7.6,6.4 7.6,1 Z m 1.2,1.2 3,0 0,3 -3,0 0,-3 z m -1.2,5.4 5.4,0 0,5.4 -5.4,0 0,-5.4 z m 1.2,1.2 3,0 0,3 -3,0 0,-3 z"
+            />
+          </svg>
+          Tile view
+        </button>
+      </div>
+      <div
+        class={`my-4 ${
+          isTileView.value
+            ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+            : ""
+        }`}
+      >
         {issues.value.map((issue: any) => (
-          <article class="p-4 bg-white rounded-lg border border-gray-200 shadow-md dark:bg-gray-800 dark:border-gray-700">
-            <div class="flex items-center space-x-2">
-              <h2 class="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-                <a
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  href={issue.html_url}
-                >
-                  {issue.title}
-                </a>
-              </h2>
-              {issue.labels &&
-                issue.labels.length > 0 &&
-                issue.labels.splice(0, 3).map((label: any) => (
-                  <span class="flex items-center border p-1 truncate" style={{
-                    fontSize: "0.5rem",
-                  }}>
-                    <svg
-                      class="mr-1 w-2 h-2"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z"></path>
-                    </svg>
-                    {label.name}
-                  </span>
-                ))}
-            </div>
-            <p
-              class="relative text-sm text-gray-500 font-light max-h-40 max-w-md overflow-clip"
-              ref={pRef}
-              dangerouslySetInnerHTML={DOMPurify.sanitize(
-                marked.parse(issue.body)
-              )}>
-            </p>
-            <div class="flex justify-between items-center">
-              <div class="flex items-center space-x-4">
-                <span class="text-xs dark:text-white">
-                  #{issue.number} opened by {issue.user.login}{" "}
-                  {formatTimeToNow(issue.created_at)}
-                </span>
-              </div>
-              <a
-                href={issue.html_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                class="inline-flex items-center font-medium text-primary-600 dark:text-primary-500 hover:underline"
-              >
-                Go to Issue
-                <svg
-                  class="ml-2 w-4 h-4"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    fill-rule="evenodd"
-                    d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z"
-                    clip-rule="evenodd"
-                  ></path>
-                </svg>
-              </a>
-            </div>
-          </article>
+          <div>
+            {isTileView.value ? (
+              <TileIssue issue={issue} />
+            ) : (
+              <FullWidthIssue issue={issue} />
+            )}
+          </div>
         ))}
         {issues.value.length > 0 &&
           issues.value.length % issuesPerPage === 0 && (
@@ -186,6 +196,24 @@ export default component$(() => {
               Load more
             </button>
           )}
+        {isLoading.value && (
+          <>
+            {new Array(20).fill(null).map((_, idx) => (
+              <div
+                key={idx}
+                class="mt-4 p-4 space-y-4 border border-gray-200 divide-y divide-gray-200 rounded shadow animate-pulse dark:divide-gray-700 md:p-6 dark:border-gray-700 w-full"
+              >
+                <div class="flex items-center justify-between pt-4">
+                  <div>
+                    <div class="h-2.5 bg-gray-300 rounded-full dark:bg-gray-600 w-24 mb-2.5"></div>
+                    <div class="w-32 h-2 bg-gray-200 rounded-full dark:bg-gray-700"></div>
+                  </div>
+                  <div class="h-2.5 bg-gray-300 rounded-full dark:bg-gray-700 w-12"></div>
+                </div>
+              </div>
+            ))}
+          </>
+        )}
       </div>
     </div>
   );
