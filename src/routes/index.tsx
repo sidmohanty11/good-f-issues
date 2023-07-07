@@ -13,10 +13,35 @@ export default component$(() => {
   const page = useSignal(1);
   const isTileView = useSignal(true);
   const isLoading = useSignal(false);
+  const errorMessage = useSignal("");
 
   const fetchIssues = $(async () => {
     isLoading.value = true;
+    errorMessage.value = "";
+    issues.value = [];
     const { data, error } = await supabase.auth.getSession();
+
+    let org = orgName.value;
+
+    if (!org) {
+      errorMessage.value = "Please enter an organization name.";
+      isLoading.value = false;
+      return;
+    }
+
+    if (org.includes("https")) {
+      // its a URL, then do this
+      const regex = /(?<=github\.com\/)[^\/]+/;
+      const match = org.match(regex);
+
+      if (match && match.length === 1) {
+        org = match[0];
+      } else {
+        errorMessage.value = "Please enter a valid organization name.";
+        isLoading.value = false;
+        return;
+      }
+    }
 
     if (error || !data.session?.provider_token) {
       window.location.href = "/login?error=session_expired";
@@ -26,7 +51,7 @@ export default component$(() => {
 
     try {
       const fetchIssuesPage = await fetch(
-        `https://api.github.com/search/issues?q=org:${orgName.value}+label:"good first issue"+state:open&per_page=${issuesPerPage}&page=${page.value}`,
+        `https://api.github.com/search/issues?q=org:${org}+label:"good first issue"+state:open&per_page=${issuesPerPage}&page=${page.value}`,
         {
           headers: {
             "X-GitHub-Api-Version": "2022-11-28",
@@ -38,9 +63,11 @@ export default component$(() => {
       const issuesPage = await fetchIssuesPage.json();
       issues.value = [...issues.value, ...issuesPage.items];
     } catch (error) {
-      console.log(error);
+      console.log("Error fetching issues:", error);
+      errorMessage.value = "Error fetching issues. Please try again.";
     } finally {
       isLoading.value = false;
+      orgName.value = "";
     }
   });
 
@@ -53,7 +80,7 @@ export default component$(() => {
       } else {
         const { data, error } = await supabase.auth.getUser();
         if (error) {
-          window.location.href = "/login";
+          window.location.href = "/login?error=session_expired";
         }
         if (data) {
           user.value = data.user?.user_metadata;
@@ -66,6 +93,7 @@ export default component$(() => {
       }
     } catch (error) {
       console.log("Error fetching user data:", error);
+      window.location.href = "/login?error=session_expired";
     }
   });
 
@@ -98,7 +126,7 @@ export default component$(() => {
         <input
           class="w-full p-2 rounded bg-gray-800 border border-gray-200"
           type="text"
-          placeholder="Enter an organization name to find their good first issues"
+          placeholder="Enter an organization name or URL to find their good first issues"
           value={orgName.value}
           onChange$={(event) => {
             orgName.value = event.target.value;
@@ -116,10 +144,15 @@ export default component$(() => {
           Find
         </button>
       </div>
+      <div>
+        {errorMessage.value && (
+          <p class="text-red-500 text-center mt-4">{errorMessage.value}</p>
+        )}
+      </div>
       <div class="flex items-center justify-center mt-4">
         <button
           class={`bg-gray-800 p-2 border border-gray-300 flex items-center ${
-            !isTileView.value ? "bg-blue-900" : ""
+            !isTileView.value ? "bg-blue-800" : ""
           }`}
           onClick$={() => {
             isTileView.value = false;
@@ -143,7 +176,7 @@ export default component$(() => {
         </button>
         <button
           class={`bg-gray-800 p-2 border border-gray-300 flex items-center ${
-            isTileView.value ? "bg-blue-900" : ""
+            isTileView.value ? "bg-blue-800" : ""
           }`}
           onClick$={() => {
             isTileView.value = true;

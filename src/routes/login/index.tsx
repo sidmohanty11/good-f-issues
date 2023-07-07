@@ -30,6 +30,7 @@ const Login = component$(() => {
     });
     if (error) {
       console.log(error);
+      toast.value = "Error logging in. Please try again.";
       return;
     }
   });
